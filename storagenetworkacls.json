@@ -1,0 +1,75 @@
+{
+  "properties": {
+    "displayName": "Custom Storage accounts should restrict network access",
+    "policyType": "Custom",
+    "mode": "Indexed",
+    "description": "Network access to storage accounts should be restricted. Configure network rules so only applications from allowed networks can access the storage account. To allow connections from specific internet or on-premises clients, access can be granted to traffic from specific Azure virtual networks or to public internet IP address ranges",
+    "metadata": {
+      "createdBy": "06a17dd2-9262-4921-9883-d6524ae4948f",
+      "createdOn": "2023-03-07T07:58:49.2581882Z",
+      "updatedBy": "06a17dd2-9262-4921-9883-d6524ae4948f",
+      "updatedOn": "2023-03-07T09:10:54.786409Z"
+    },
+    "parameters": {
+      "allowedIps": {
+        "type": "String",
+        "metadata": {
+          "displayName": "allowedIps",
+          "description": null
+        },
+        "defaultValue": "72.177.231.191,72.177.231.192"
+      },
+      "effect": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Effect",
+          "description": "The effect determines what happens when the policy rule is evaluated to match"
+        },
+        "allowedValues": [
+          "Modify",
+          "Disabled"
+        ],
+        "defaultValue": "Modify"
+      }
+    },
+    "policyRule": {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Storage/storageAccounts"
+          },
+          {
+            "field": "Microsoft.Storage/storageAccounts/networkAcls.defaultAction",
+            "notEquals": "Deny"
+          }
+        ]
+      },
+      "then": {
+        "effect": "[parameters('effect')]",
+        "details": {
+          "roleDefinitionIds": [
+            "/providers/Microsoft.Authorization/roleDefinitions/17d1049b-9a84-46fb-8f53-869881c3d3ab"
+          ],
+          "operations": [
+            {
+              "operation": "addOrReplace",
+              "field": "Microsoft.Storage/storageAccounts/networkAcls.defaultAction",
+              "value": "Deny"
+            },
+            {
+              "operation": "addOrReplace",
+              "field": "Microsoft.Storage/storageAccounts/networkAcls.ipRules[*].value",
+              "value": "[parameters('allowedIps')]"
+            },
+            {
+              "operation": "addOrReplace",
+              "field": "Microsoft.Storage/storageAccounts/networkAcls.ipRules[*].action",
+              "value": "Allow"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
