@@ -1,19 +1,34 @@
 {
   "properties": {
-    "displayName": "Custom Storage accounts should restrict network access",
+    "displayName": "Custom Network Access Storage Accounts",
     "policyType": "Custom",
     "mode": "Indexed",
-    "description": "Network access to storage accounts should be restricted. Configure network rules so only applications from allowed networks can access the storage account. To allow connections from specific internet or on-premises clients, access can be granted to traffic from specific Azure virtual networks or to public internet IP address ranges",
-    "metadata": {
-    },
+    "metadata": {},
     "parameters": {
       "allowedIps": {
-        "type": "String",
+        "type": "Array",
         "metadata": {
           "displayName": "allowedIps",
           "description": null
         },
-        "defaultValue": "72.177.231.191,72.177.231.192"
+        "defaultValue": [
+          {
+            "value": "72.177.231.128/26",
+            "action": "Allow"
+          },
+          {
+            "value": "72.177.231.193",
+            "action": "Allow"
+          }
+        ]
+      },
+      "listIPs": {
+        "type": "Array",
+        "metadata": {},
+        "defaultValue": [
+          "72.177.231.128/26",
+          "72.177.231.193"
+        ]
       },
       "effect": {
         "type": "String",
@@ -36,8 +51,26 @@
             "equals": "Microsoft.Storage/storageAccounts"
           },
           {
-            "field": "Microsoft.Storage/storageAccounts/networkAcls.defaultAction",
-            "notEquals": "Deny"
+            "anyof": [
+              {
+                "field": "Microsoft.Storage/storageAccounts/networkAcls.defaultAction",
+                "Equals": "Allow"
+              },
+              {
+                "allof": [
+                  {
+                    "field": "Microsoft.Storage/storageAccounts/networkAcls.ipRules[*].value",
+                    "notEquals": ""
+                  },
+                  {
+                    "not": {
+                      "field": "Microsoft.Storage/storageAccounts/networkAcls.ipRules[*].value",
+                      "in": "[parameters('listIPs')]"
+                    }
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -55,16 +88,12 @@
             },
             {
               "operation": "addOrReplace",
-              "field": "Microsoft.Storage/storageAccounts/networkAcls.ipRules[*].value",
+              "field": "Microsoft.Storage/storageAccounts/networkAcls.ipRules",
               "value": "[parameters('allowedIps')]"
-            },
-            {
-              "operation": "addOrReplace",
-              "field": "Microsoft.Storage/storageAccounts/networkAcls.ipRules[*].action",
-              "value": "Allow"
             }
           ]
         }
       }
     }
+  }
 }
